@@ -1,210 +1,94 @@
-name: ci
+# This workflow will build and push a new container image to Amazon ECR,
+# and then will deploy a new task definition to Amazon ECS, when there is a push to the "main" branch.
+#
+# To use this workflow, you will need to complete the following set-up steps:
+#
+# 1. Create an ECR repository to store your images.
+#    For example: `aws ecr create-repository --repository-name my-ecr-repo --region us-east-2`.
+#    Replace the value of the `ECR_REPOSITORY` environment variable in the workflow below with your repository's name.
+#    Replace the value of the `AWS_REGION` environment variable in the workflow below with your repository's region.
+#
+# 2. Create an ECS task definition, an ECS cluster, and an ECS service.
+#    For example, follow the Getting Started guide on the ECS console:
+#      https://us-east-2.console.aws.amazon.com/ecs/home?region=us-east-2#/firstRun
+#    Replace the value of the `ECS_SERVICE` environment variable in the workflow below with the name you set for the Amazon ECS service.
+#    Replace the value of the `ECS_CLUSTER` environment variable in the workflow below with the name you set for the cluster.
+#
+# 3. Store your ECS task definition as a JSON file in your repository.
+#    The format should follow the output of `aws ecs register-task-definition --generate-cli-skeleton`.
+#    Replace the value of the `ECS_TASK_DEFINITION` environment variable in the workflow below with the path to the JSON file.
+#    Replace the value of the `CONTAINER_NAME` environment variable in the workflow below with the name of the container
+#    in the `containerDefinitions` section of the task definition.
+#
+# 4. Store an IAM user access key in GitHub Actions secrets named `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`.
+#    See the documentation for each action used below for the recommended IAM policies for this IAM user,
+#    and best practices on handling the access key credentials.
+
+name: Deploy to Amazon ECS
 
 on:
-- pull_request
-- push
+  push:
+    branches: [ "main" ]
+
+env:
+  AWS_REGION: ap-south-1                                  # set this to your preferred AWS region, e.g. us-west-1
+  ECR_REPOSITORY: nodejsapp                               # set this to your Amazon ECR repository name
+  ECS_SERVICE: nodejsapp                                  # set this to your Amazon ECS service name
+  ECS_CLUSTER: nodejsapp                                  # set this to your Amazon ECS cluster name
+  ECS_TASK_DEFINITION: task-defination.json            # set this to the path to your Amazon ECS task definition
+                                                          # file, e.g. .aws/task-definition.json
+  CONTAINER_NAME: nodejsapp           # set this to the name of the container in the
+                                               # containerDefinitions section of your task definition
+
+permissions:
+  contents: read
 
 jobs:
-  test:
+  deploy:
+    name: Deploy
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        name:
-        - Node.js 0.10
-        - Node.js 0.12
-        - io.js 1.x
-        - io.js 2.x
-        - io.js 3.x
-        - Node.js 4.x
-        - Node.js 5.x
-        - Node.js 6.x
-        - Node.js 7.x
-        - Node.js 8.x
-        - Node.js 9.x
-        - Node.js 10.x
-        - Node.js 11.x
-        - Node.js 12.x
-        - Node.js 13.x
-        - Node.js 14.x
-        - Node.js 15.x
-        - Node.js 16.x
-        - Node.js 17.x
-        - Node.js 18.x
-        - Node.js 19.x
-
-        include:
-        - name: Node.js 0.10
-          node-version: "0.10"
-          npm-i: mocha@3.5.3 nyc@10.3.2 supertest@2.0.0
-
-        - name: Node.js 0.12
-          node-version: "0.12"
-          npm-i: mocha@3.5.3 nyc@10.3.2 supertest@2.0.0
-
-        - name: io.js 1.x
-          node-version: "1.8"
-          npm-i: mocha@3.5.3 nyc@10.3.2 supertest@2.0.0
-
-        - name: io.js 2.x
-          node-version: "2.5"
-          npm-i: mocha@3.5.3 nyc@10.3.2 supertest@2.0.0
-
-        - name: io.js 3.x
-          node-version: "3.3"
-          npm-i: mocha@3.5.3 nyc@10.3.2 supertest@2.0.0
-
-        - name: Node.js 4.x
-          node-version: "4.9"
-          npm-i: mocha@5.2.0 nyc@11.9.0 supertest@3.4.2
-
-        - name: Node.js 5.x
-          node-version: "5.12"
-          npm-i: mocha@5.2.0 nyc@11.9.0 supertest@3.4.2
-
-        - name: Node.js 6.x
-          node-version: "6.17"
-          npm-i: mocha@6.2.2 nyc@14.1.1 supertest@3.4.2
-
-        - name: Node.js 7.x
-          node-version: "7.10"
-          npm-i: mocha@6.2.2 nyc@14.1.1 supertest@6.1.6
-
-        - name: Node.js 8.x
-          node-version: "8.17"
-          npm-i: mocha@7.2.0
-
-        - name: Node.js 9.x
-          node-version: "9.11"
-          npm-i: mocha@7.2.0
-
-        - name: Node.js 10.x
-          node-version: "10.24"
-          npm-i: mocha@8.4.0
-
-        - name: Node.js 11.x
-          node-version: "11.15"
-          npm-i: mocha@8.4.0
-
-        - name: Node.js 12.x
-          node-version: "12.22"
-          npm-i: mocha@9.2.2
-
-        - name: Node.js 13.x
-          node-version: "13.14"
-          npm-i: mocha@9.2.2
-
-        - name: Node.js 14.x
-          node-version: "14.20"
-
-        - name: Node.js 15.x
-          node-version: "15.14"
-
-        - name: Node.js 16.x
-          node-version: "16.19"
-
-        - name: Node.js 17.x
-          node-version: "17.9"
-
-        - name: Node.js 18.x
-          node-version: "18.14"
-
-        - name: Node.js 19.x
-          node-version: "19.7"
+    environment: production
 
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout
+      uses: actions/checkout@v3
 
-    - name: Install Node.js ${{ matrix.node-version }}
-      shell: bash -eo pipefail -l {0}
-      run: |
-        nvm install --default ${{ matrix.node-version }}
-        dirname "$(nvm which ${{ matrix.node-version }})" >> "$GITHUB_PATH"
-
-    - name: Configure npm
-      run: |
-        npm config set loglevel error
-        if [[ "$(npm config get package-lock)" == "true" ]]; then
-          npm config set package-lock false
-        else
-          npm config set shrinkwrap false
-        fi
-
-    - name: Install npm module(s) ${{ matrix.npm-i }}
-      run: npm install --save-dev ${{ matrix.npm-i }}
-      if: matrix.npm-i != ''
-
-    - name: Remove non-test dependencies
-      run: npm rm --silent --save-dev connect-redis
-
-    - name: Setup Node.js version-specific dependencies
-      shell: bash
-      run: |
-        # eslint for linting
-        # - remove on Node.js < 12
-        if [[ "$(cut -d. -f1 <<< "${{ matrix.node-version }}")" -lt 12 ]]; then
-          node -pe 'Object.keys(require("./package").devDependencies).join("\n")' | \
-            grep -E '^eslint(-|$)' | \
-            sort -r | \
-            xargs -n1 npm rm --silent --save-dev
-        fi
-
-    - name: Install Node.js dependencies
-      run: npm install
-
-    - name: List environment
-      id: list_env
-      shell: bash
-      run: |
-        echo "node@$(node -v)"
-        echo "npm@$(npm -v)"
-        npm -s ls ||:
-        (npm -s ls --depth=0 ||:) | awk -F'[ @]' 'NR>1 && $2 { print $2 "=" $3 }' >> "$GITHUB_OUTPUT"
-
-    - name: Run tests
-      shell: bash
-      run: |
-        npm run test-ci
-        cp coverage/lcov.info "coverage/${{ matrix.name }}.lcov"
-
-    - name: Lint code
-      if: steps.list_env.outputs.eslint != ''
-      run: npm run lint
-
-    - name: Collect code coverage
-      run: |
-        mv ./coverage "./${{ matrix.name }}"
-        mkdir ./coverage
-        mv "./${{ matrix.name }}" "./coverage/${{ matrix.name }}"
-
-    - name: Upload code coverage
-      uses: actions/upload-artifact@v3
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
       with:
-        name: coverage
-        path: ./coverage
-        retention-days: 1
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
 
-  coverage:
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
 
-    - name: Install lcov
-      shell: bash
-      run: sudo apt-get -y install lcov
+    - name: Build, tag, and push image to Amazon ECR
+      id: build-image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        # Build a docker container and
+        # push it to ECR so that it can
+        # be deployed to ECS.
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-    - name: Collect coverage reports
-      uses: actions/download-artifact@v3
+    - name: Fill in the new image ID in the Amazon ECS task definition
+      id: task-def
+      uses: aws-actions/amazon-ecs-render-task-definition@v1
       with:
-        name: coverage
-        path: ./coverage
+        task-definition: ${{ env.ECS_TASK_DEFINITION }}
+        container-name: ${{ env.CONTAINER_NAME }}
+        image: ${{ steps.build-image.outputs.image }}
 
-    - name: Merge coverage reports
-      shell: bash
-      run: find ./coverage -name lcov.info -exec printf '-a %q\n' {} \; | xargs lcov -o ./coverage/lcov.info
-
-    - name: Upload coverage report
-      uses: coverallsapp/github-action@master
+    - name: Deploy Amazon ECS task definition
+      uses: aws-actions/amazon-ecs-deploy-task-definition@v1
       with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
+        task-definition: ${{ steps.task-def.outputs.task-definition }}
+        service: ${{ env.ECS_SERVICE }}
+        cluster: ${{ env.ECS_CLUSTER }}
+        wait-for-service-stability: true
