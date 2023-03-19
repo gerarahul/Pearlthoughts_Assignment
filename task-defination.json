@@ -1,0 +1,29 @@
+{
+    "family": "nodejsapp",
+    "containerDefinitions": [
+        {
+            "name": "nodejsapp",
+            "image": "918336355366.dkr.ecr.ap-south-1.amazonaws.com/nodejsapp:latest",
+            "cpu": 0,
+            "portMappings": [
+                {
+                    "containerPort": 3000,
+                    "hostPort": 3000,
+                    "protocol": "tcp"
+                }
+            ],
+            "essential": true,
+            "environment": [],
+            "mountPoints": [],
+            "volumesFrom": []
+        }
+    ],
+    "taskRoleArn": "arn:aws:iam::918336355366:role/ecs-task-role",
+    "executionRoleArn": "arn:aws:iam::918336355366:role/ecs-task-execution-role",
+    "networkMode": "awsvpc",
+    "requiresCompatibilities": [
+        "FARGATE"
+    ],
+    "cpu": "256",
+    "memory": "512"
+}
